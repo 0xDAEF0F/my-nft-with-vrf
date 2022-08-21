@@ -72,7 +72,7 @@ contract MyNFTTest is Test {
         vm.expectEmit(true, true, true, true, address(vrfCoordinator));
         emit RandomWordsRequested(
             bytes32(
-                0x4b09e658ed251bcafeebbc69400383d49f344ace09b9576fe248bb02c003fe9f
+                0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15
             ),
             1,
             100,

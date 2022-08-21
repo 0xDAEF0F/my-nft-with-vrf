@@ -11,20 +11,26 @@ contract MyNFT is ERC721, VRFConsumerBaseV2 {
     using Counters for Counters.Counter;
     using Strings for uint8;
 
+    /*//////////////////////////////////////////////////////////////
+                         VRF INFORMATION
+    //////////////////////////////////////////////////////////////*/
+
     VRFCoordinatorV2Interface COORDINATOR;
+    uint64 immutable VRF_SUBSCRIPTION_ID;
+    bytes32 constant VRF_KEY_HASH =
+        0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15;
 
-    uint64 s_subscriptionId;
-    bytes32 keyHash =
-        0x4b09e658ed251bcafeebbc69400383d49f344ace09b9576fe248bb02c003fe9f;
-    uint32 callbackGasLimit = 200000;
-    uint16 requestConfirmations = 3;
-    uint32 numWords = 1;
+    /*//////////////////////////////////////////////////////////////
+                         CUSTOM FUNCTIONALITY NFT
+    //////////////////////////////////////////////////////////////*/
 
-    // each element of the set uint8 maps to an item class (0 no class).
     mapping(uint256 => uint8) public tokenIdToItemClass;
-    mapping(uint256 => address) private requestIdToSender;
-
+    mapping(uint256 => address) private _requestIdToSender;
     Counters.Counter private _tokenIdCounter;
+
+    /*//////////////////////////////////////////////////////////////
+                                 EVENTS
+    //////////////////////////////////////////////////////////////*/
 
     event LogReceivedRandomness(uint256 reqId, uint8 num);
     event LogRequestedRandomness(uint256 reqId, address invoker);
@@ -34,19 +40,22 @@ contract MyNFT is ERC721, VRFConsumerBaseV2 {
         VRFConsumerBaseV2(_vrfCoordinator)
     {
         COORDINATOR = VRFCoordinatorV2Interface(_vrfCoordinator);
-        s_subscriptionId = _subscriptionId;
+        VRF_SUBSCRIPTION_ID = _subscriptionId;
     }
 
     function safeMint() public returns (uint256 requestId) {
         // Will revert if subscription is not set and funded.
         requestId = COORDINATOR.requestRandomWords(
-            keyHash,
-            s_subscriptionId,
-            requestConfirmations,
-            callbackGasLimit,
-            numWords
+            VRF_KEY_HASH,
+            VRF_SUBSCRIPTION_ID,
+            // requestConfirmations
+            3,
+            // callbackGasLimit
+            200000,
+            // random words to request
+            1
         );
-        requestIdToSender[requestId] = msg.sender;
+        _requestIdToSender[requestId] = msg.sender;
         emit LogRequestedRandomness(requestId, msg.sender);
     }
 
@@ -59,7 +68,7 @@ contract MyNFT is ERC721, VRFConsumerBaseV2 {
         // number in range from 1 to 255
         uint8 itemClass = uint8((randomWord % 255) + 1);
         // person who requested the mint
-        address sender = requestIdToSender[requestId];
+        address sender = _requestIdToSender[requestId];
         // tokenId to mint
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
