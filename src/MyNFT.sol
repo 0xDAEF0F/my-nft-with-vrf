@@ -6,8 +6,9 @@ import {VRFConsumerBaseV2} from "chainlink/contracts/src/v0.8/VRFConsumerBaseV2.
 import {VRFCoordinatorV2Interface} from "chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import {Counters} from "openzeppelin-contracts/contracts/utils/Counters.sol";
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
+import "forge-std/Test.sol";
 
-contract MyNFT is ERC721, VRFConsumerBaseV2 {
+contract MyNFT is ERC721, VRFConsumerBaseV2, Test {
     using Counters for Counters.Counter;
     using Strings for uint8;
 
@@ -46,6 +47,7 @@ contract MyNFT is ERC721, VRFConsumerBaseV2 {
             callbackGasLimit,
             numWords
         );
+        requestIdToSender[requestId] = msg.sender;
         emit LogRequestedRandomness(requestId, msg.sender);
     }
 
