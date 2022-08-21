@@ -1,6 +1,7 @@
-# MY FOUNDRY REPO
+# MY NFT With VRF
 
 ## Purpose
-Repository of some of my custom smart contracts.
+The purpose of this project is to show how to
+produce NFTs that have randomized traits with ChainLink VRF
 
 Enjoy! Safe Coding!
