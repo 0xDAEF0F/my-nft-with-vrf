@@ -6,9 +6,8 @@ import {VRFConsumerBaseV2} from "chainlink/contracts/src/v0.8/VRFConsumerBaseV2.
 import {VRFCoordinatorV2Interface} from "chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import {Counters} from "openzeppelin-contracts/contracts/utils/Counters.sol";
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
-import "forge-std/Test.sol";
 
-contract MyNFT is ERC721, VRFConsumerBaseV2, Test {
+contract MyNFT is ERC721, VRFConsumerBaseV2 {
     using Counters for Counters.Counter;
     using Strings for uint8;
 
@@ -22,7 +21,7 @@ contract MyNFT is ERC721, VRFConsumerBaseV2, Test {
     uint32 numWords = 1;
 
     // each element of the set uint8 maps to an item class (0 no class).
-    mapping(uint256 => uint8) private tokenIdToItemClass;
+    mapping(uint256 => uint8) public tokenIdToItemClass;
     mapping(uint256 => address) private requestIdToSender;
 
     Counters.Counter private _tokenIdCounter;
@@ -59,12 +58,15 @@ contract MyNFT is ERC721, VRFConsumerBaseV2, Test {
         uint256 randomWord = randomWords[0];
         // number in range from 1 to 255
         uint8 itemClass = uint8((randomWord % 255) + 1);
-
+        // person who requested the mint
         address sender = requestIdToSender[requestId];
-
+        // tokenId to mint
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
+
         _safeMint(sender, tokenId);
+        // assign a class to that token
+        tokenIdToItemClass[tokenId] = itemClass;
 
         emit LogReceivedRandomness(requestId, itemClass);
     }

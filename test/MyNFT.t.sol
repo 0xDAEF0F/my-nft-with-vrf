@@ -5,14 +5,18 @@ import {Test} from "forge-std/Test.sol";
 import {MyNFT} from "../src/MyNFT.sol";
 import {VRFCoordinatorV2Mock} from "chainlink/contracts/src/v0.8/mocks/VRFCoordinatorV2Mock.sol";
 import {Utilities} from "./utils/Utilities.sol";
+import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
 contract MyNFTTest is Test {
+    using Strings for uint8;
+
     VRFCoordinatorV2Mock vrfCoordinator;
     MyNFT myNFT;
     Utilities internal utils;
     address payable internal ownerOfVRF;
     address payable internal ownerNFTProject;
     address payable internal user;
+    address payable internal hacker;
 
     event LogRequestedRandomness(uint256 reqId, address invoker);
     event LogReceivedRandomness(uint256 reqId, uint8 num);
@@ -30,14 +34,16 @@ contract MyNFTTest is Test {
     function setUp() public {
         // SET UP ACCOUNTS
         utils = new Utilities();
-        address payable[] memory users = utils.createUsers(3);
+        address payable[] memory users = utils.createUsers(4);
         ownerOfVRF = users[0];
         ownerNFTProject = users[1];
         user = users[2];
+        hacker = users[3];
 
         vm.label(ownerOfVRF, "Owner of VRF");
         vm.label(ownerNFTProject, "Owner of NFT Project");
         vm.label(user, "User");
+        vm.label(hacker, "Hacker");
 
         vm.prank(ownerOfVRF);
         vrfCoordinator = new VRFCoordinatorV2Mock(0, 0);
@@ -89,5 +95,57 @@ contract MyNFTTest is Test {
 
         vm.prank(ownerOfVRF);
         vrfCoordinator.fulfillRandomWords(requestId, address(myNFT));
+    }
+
+    function setMintProcess(uint256 randomWord) private {
+        uint256[] memory arr = new uint256[](1);
+        arr[0] = randomWord;
+
+        vm.prank(user);
+        uint256 requestId = myNFT.safeMint();
+
+        vm.prank(ownerOfVRF);
+        vrfCoordinator.fulfillRandomWordsWithOverride(
+            requestId,
+            address(myNFT),
+            arr
+        );
+    }
+
+    function testOwnerOfNFTShouldBeMinter(uint256 randomWord) public {
+        setMintProcess(randomWord);
+
+        address ownerOfTokenZero = myNFT.ownerOf(0);
+
+        assertEq(ownerOfTokenZero, user);
+    }
+
+    function testMintedTokenShouldCorrespondToAnItemClass(uint256 randomWord)
+        public
+    {
+        setMintProcess(randomWord);
+
+        uint8 tokenClass = myNFT.tokenIdToItemClass(0);
+
+        assertEq(
+            string(
+                abi.encodePacked(
+                    "https://www.my-website.xyz/",
+                    tokenClass.toString()
+                )
+            ),
+            myNFT.tokenURI(0)
+        );
+        // item class should be in range 1 - 255
+        assertTrue(tokenClass > 0 && tokenClass < 256);
+    }
+
+    function testHackerShouldNotBeAbleToTransferToken(uint256 randomWord)
+        public
+    {
+        setMintProcess(randomWord);
+
+        vm.expectRevert(bytes("NOT_AUTHORIZED"));
+        myNFT.safeTransferFrom(user, hacker, 0);
     }
 }
